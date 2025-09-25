@@ -19,16 +19,9 @@ const app = express();
 // Trust proxy for rate limiting
 app.set('trust proxy', 1);
 
-// Security middleware
+// Security middleware - Disable CSP for Swagger UI in production
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
+  contentSecurityPolicy: false, // Temporarily disable for Swagger UI
 }));
 
 // CORS configuration
