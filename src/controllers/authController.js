@@ -73,6 +73,15 @@ class AuthController {
         return sendError(res, error.message, 400);
       }
       
+      if (error.message.includes('required') || error.message.includes('validation')) {
+        return sendError(res, error.message, 400);
+      }
+
+      // Database connection errors
+      if (error.code === 'P1001' || error.message.includes("Can't reach database")) {
+        return sendError(res, 'Database connection error. Please try again.', 503);
+      }
+      
       sendError(res, 'Registration failed', 500, error.message);
     }
   }
@@ -139,6 +148,15 @@ class AuthController {
       
       if (error.message === 'Invalid email or password') {
         return sendError(res, error.message, 401);
+      }
+
+      if (error.message.includes('required') || error.message.includes('validation')) {
+        return sendError(res, error.message, 400);
+      }
+
+      // Database connection errors
+      if (error.code === 'P1001' || error.message.includes("Can't reach database")) {
+        return sendError(res, 'Database connection error. Please try again.', 503);
       }
       
       sendError(res, 'Login failed', 500, error.message);

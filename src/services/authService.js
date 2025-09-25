@@ -12,41 +12,51 @@ class AuthService {
    * @returns {Object} User and token
    */
   static async register(userData) {
-    const { email, password, name } = userData;
+    try {
+      const { email, password, name } = userData;
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+      // Input validation
+      if (!email || !password) {
+        throw new Error('Email and password are required');
+      }
 
-    if (existingUser) {
-      throw new Error('User already exists with this email');
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+
+      if (existingUser) {
+        throw new Error('User already exists with this email');
+      }
+
+      // Hash password
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      // Create user
+      const user = await prisma.user.create({
+        data: {
+          email: email.toLowerCase(),
+          password: hashedPassword,
+          name: name || null,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // Generate token
+      const token = generateToken({ userId: user.id });
+
+      return { user, token };
+    } catch (error) {
+      console.error('Register service error:', error);
+      throw error;
     }
-
-    // Hash password
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: email.toLowerCase(),
-        password: hashedPassword,
-        name: name || null,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    // Generate token
-    const token = generateToken({ userId: user.id });
-
-    return { user, token };
   }
 
   /**
@@ -55,31 +65,41 @@ class AuthService {
    * @returns {Object} User and token
    */
   static async login(loginData) {
-    const { email, password } = loginData;
+    try {
+      const { email, password } = loginData;
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+      // Input validation
+      if (!email || !password) {
+        throw new Error('Email and password are required');
+      }
 
-    if (!user) {
-      throw new Error('Invalid email or password');
+      // Find user
+      const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+
+      if (!user) {
+        throw new Error('Invalid email or password');
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+
+      if (!isValidPassword) {
+        throw new Error('Invalid email or password');
+      }
+
+      // Generate token
+      const token = generateToken({ userId: user.id });
+
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+
+      return { user: userWithoutPassword, token };
+    } catch (error) {
+      console.error('Login service error:', error);
+      throw error;
     }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-
-    if (!isValidPassword) {
-      throw new Error('Invalid email or password');
-    }
-
-    // Generate token
-    const token = generateToken({ userId: user.id });
-
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
-
-    return { user: userWithoutPassword, token };
   }
 
   /**
