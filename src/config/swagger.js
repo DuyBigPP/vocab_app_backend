@@ -15,7 +15,7 @@ const options = {
     servers: [
       {
         url: process.env.NODE_ENV === 'production' 
-          ? process.env.API_BASE_URL || `https://your-app.onrender.com`
+          ? process.env.API_BASE_URL || `https://vocab-app-backend-lmao.onrender.com`
           : `http://localhost:${process.env.PORT || 3000}`,
         description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
       },
