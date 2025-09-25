@@ -60,12 +60,25 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
 app.use('/api', routes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+app.get('/health', async (req, res) => {
+  try {
+    const { prisma } = require('./src/config/database');
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({
+      status: 'healthy',
+      database: 'connected',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      database: 'disconnected',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  }
 });
 
 // Root endpoint

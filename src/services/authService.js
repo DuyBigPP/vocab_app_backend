@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const prisma = require('../config/database');
+const { prisma, withRetry } = require('../config/database');
 const { generateToken } = require('../utils/jwt');
 
 /**
@@ -21,8 +21,10 @@ class AuthService {
       }
 
       // Check if user already exists
-      const existingUser = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() },
+      const existingUser = await withRetry(async () => {
+        return await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+        });
       });
 
       if (existingUser) {
@@ -34,19 +36,21 @@ class AuthService {
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
       // Create user
-      const user = await prisma.user.create({
-        data: {
-          email: email.toLowerCase(),
-          password: hashedPassword,
-          name: name || null,
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+      const user = await withRetry(async () => {
+        return await prisma.user.create({
+          data: {
+            email: email.toLowerCase(),
+            password: hashedPassword,
+            name: name || null,
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
       });
 
       // Generate token
@@ -74,8 +78,10 @@ class AuthService {
       }
 
       // Find user
-      const user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() },
+      const user = await withRetry(async () => {
+        return await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+        });
       });
 
       if (!user) {

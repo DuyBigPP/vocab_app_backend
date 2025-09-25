@@ -1,4 +1,4 @@
-const prisma = require('../config/database');
+const { prisma, withRetry } = require('../config/database');
 
 /**
  * Card Service
