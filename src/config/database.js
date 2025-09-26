@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 
-// Tối ưu connection string cho Render free tier
-const optimizedUrl = process.env.DATABASE_URL + '&connection_limit=3&pool_timeout=15';
+// Neon connection string đã được optimize sẵn, không cần thêm params
+const optimizedUrl = process.env.DATABASE_URL;
 
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'], // Giảm logging
