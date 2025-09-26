@@ -1,29 +1,46 @@
 const { PrismaClient } = require('@prisma/client');
 
+// Tối ưu connection string cho Render free tier
+const optimizedUrl = process.env.DATABASE_URL + '&connection_limit=1&pool_timeout=5';
+
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+  log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'], // Giảm logging
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: optimizedUrl,
     },
   },
 });
 
-// Keep connection alive với periodic ping
+// Lightweight keep-alive - chỉ khi cần
 let keepAliveInterval;
+let lastActivity = Date.now();
 
 const startKeepAlive = () => {
   if (keepAliveInterval) clearInterval(keepAliveInterval);
   
-  // Ping database every 5 minutes để giữ connection alive
+  // Ping database mỗi 10 phút, NHƯNG chỉ khi không có activity
   keepAliveInterval = setInterval(async () => {
+    const timeSinceLastActivity = Date.now() - lastActivity;
+    
+    // Nếu có activity trong 8 phút qua thì skip ping
+    if (timeSinceLastActivity < 8 * 60 * 1000) {
+      console.log('🚫 Skipping keep-alive ping (recent activity)');
+      return;
+    }
+    
     try {
       await prisma.$queryRaw`SELECT 1`;
       console.log('🏓 Database keep-alive ping successful');
     } catch (error) {
       console.error('💀 Database keep-alive ping failed:', error.message);
     }
-  }, 5 * 60 * 1000); // 5 minutes
+  }, 10 * 60 * 1000); // 10 minutes
+};
+
+// Track activity để tối ưu keep-alive
+const trackActivity = () => {
+  lastActivity = Date.now();
 };
 
 // Health check và auto-reconnect function
@@ -48,9 +65,12 @@ const ensureConnection = async () => {
 
 // Wrapper cho tất cả database operations với retry logic
 const withRetry = async (operation, maxRetries = 2) => {
+  trackActivity(); // Track mỗi lần sử dụng database
+  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await operation();
+      const result = await operation();
+      return result;
     } catch (error) {
       const isConnectionError = error.code === 'P1001' || 
         error.message.includes("Can't reach database") ||
@@ -60,8 +80,9 @@ const withRetry = async (operation, maxRetries = 2) => {
       if (isConnectionError && attempt < maxRetries) {
         console.log(`🔄 Database operation failed (attempt ${attempt}/${maxRetries}), retrying...`);
         await ensureConnection();
-        // Wait a bit before retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
       
@@ -97,4 +118,4 @@ process.on('beforeExit', async () => {
   await prisma.$disconnect();
 });
 
-module.exports = { prisma, withRetry, ensureConnection };
+module.exports = { prisma, withRetry, ensureConnection, trackActivity };
