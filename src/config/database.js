@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 
 // Tối ưu connection string cho Render free tier
-const optimizedUrl = process.env.DATABASE_URL + '&connection_limit=1&pool_timeout=15';
+const optimizedUrl = process.env.DATABASE_URL + '&connection_limit=3&pool_timeout=15';
 
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'], // Giảm logging
@@ -12,35 +12,28 @@ const prisma = new PrismaClient({
   },
 });
 
-// Lightweight keep-alive - chỉ khi cần
+// Simple keep-alive ping mỗi 5 phút
 let keepAliveInterval;
-let lastActivity = Date.now();
 
 const startKeepAlive = () => {
   if (keepAliveInterval) clearInterval(keepAliveInterval);
   
-  // Ping database mỗi 10 phút, NHƯNG chỉ khi không có activity
+  // Ping database mỗi 5 phút để maintain connection
   keepAliveInterval = setInterval(async () => {
-    const timeSinceLastActivity = Date.now() - lastActivity;
-    
-    // Nếu có activity trong 8 phút qua thì skip ping
-    if (timeSinceLastActivity < 8 * 60 * 1000) {
-      console.log('🚫 Skipping keep-alive ping (recent activity)');
-      return;
-    }
-    
     try {
       await prisma.$queryRaw`SELECT 1`;
       console.log('🏓 Database keep-alive ping successful');
     } catch (error) {
-      console.error('💀 Database keep-alive ping failed:', error.message);
+      console.error('� Database keep-alive ping failed:', error.message);
+      // Thử reconnect nếu ping fail
+      try {
+        await ensureConnection();
+        console.log('✅ Database reconnected after ping failure');
+      } catch (reconnectError) {
+        console.error('❌ Failed to reconnect after ping failure:', reconnectError.message);
+      }
     }
-  }, 10 * 60 * 1000); // 10 minutes
-};
-
-// Track activity để tối ưu keep-alive
-const trackActivity = () => {
-  lastActivity = Date.now();
+  }, 4 * 60 * 1000); // 4 minutes
 };
 
 // Health check và auto-reconnect function
@@ -65,8 +58,6 @@ const ensureConnection = async () => {
 
 // Wrapper cho tất cả database operations với retry logic
 const withRetry = async (operation, maxRetries = 2) => {
-  trackActivity(); // Track mỗi lần sử dụng database
-  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const result = await operation();
@@ -118,4 +109,4 @@ process.on('beforeExit', async () => {
   await prisma.$disconnect();
 });
 
-module.exports = { prisma, withRetry, ensureConnection, trackActivity };
+module.exports = { prisma, withRetry, ensureConnection };
