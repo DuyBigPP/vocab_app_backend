@@ -1,26 +1,16 @@
-/**
- * Validation Middleware
- */
 
-/**
- * Validate email format
- */
 const isValidEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-/**
- * Validate password strength
- */
+
 const isValidPassword = (password) => {
   // At least 6 characters
   return password && password.length >= 6;
 };
 
-/**
- * User Registration Validation
- */
+
 const validateUserRegistration = (req, res, next) => {
   const { email, password, name } = req.body;
 
@@ -53,9 +43,6 @@ const validateUserRegistration = (req, res, next) => {
   next();
 };
 
-/**
- * User Login Validation
- */
 const validateUserLogin = (req, res, next) => {
   const { email, password } = req.body;
 
@@ -82,9 +69,7 @@ const validateUserLogin = (req, res, next) => {
   next();
 };
 
-/**
- * Deck Creation/Update Validation
- */
+
 const validateDeck = (req, res, next) => {
   const { name, description } = req.body;
 
@@ -115,9 +100,7 @@ const validateDeck = (req, res, next) => {
   next();
 };
 
-/**
- * Card Creation/Update Validation
- */
+
 const validateCard = (req, res, next) => {
   const { frontText, backText, deckId, memorized } = req.body;
 
@@ -158,9 +141,7 @@ const validateCard = (req, res, next) => {
   next();
 };
 
-/**
- * Pagination Validation
- */
+
 const validatePagination = (req, res, next) => {
   const { page = 1, limit = 10 } = req.query;
 

@@ -1,15 +1,5 @@
 const { prisma, withRetry } = require('../config/database');
-
-/**
- * Deck Service
- */
 class DeckService {
-  /**
-   * Create a new deck
-   * @param {string} userId - User ID
-   * @param {Object} deckData - Deck data
-   * @returns {Object} Created deck
-   */
   static async createDeck(userId, deckData) {
     const { name, description } = deckData;
 
@@ -34,12 +24,7 @@ class DeckService {
     return deck;
   }
 
-  /**
-   * Get all decks for a user
-   * @param {string} userId - User ID
-   * @param {Object} options - Query options
-   * @returns {Object} Decks with pagination
-   */
+
   static async getUserDecks(userId, options = {}) {
     const { page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = options;
     const skip = (page - 1) * limit;
@@ -79,10 +64,10 @@ class DeckService {
       },
     });
 
-    // Then get count
+    // get count
     const total = await prisma.deck.count({ where });
 
-    // Add statistics to each deck
+    // Add statistics to deck
     const decksWithStats = decks.map(deck => ({
       ...deck,
       stats: {
@@ -90,8 +75,8 @@ class DeckService {
         memorizedCards: deck.cards.filter(card => card.memorized).length,
         unmemorizedCards: deck.cards.filter(card => !card.memorized).length,
       },
-      cards: undefined, // Remove cards from response
-      _count: undefined, // Remove _count from response
+      cards: undefined,
+      _count: undefined,
     }));
 
     return {
@@ -105,12 +90,7 @@ class DeckService {
     };
   }
 
-  /**
-   * Get deck by ID
-   * @param {string} deckId - Deck ID
-   * @param {string} userId - User ID
-   * @returns {Object} Deck
-   */
+
   static async getDeckById(deckId, userId) {
     const deck = await prisma.deck.findFirst({
       where: {
@@ -154,13 +134,7 @@ class DeckService {
     };
   }
 
-  /**
-   * Update deck
-   * @param {string} deckId - Deck ID
-   * @param {string} userId - User ID
-   * @param {Object} updateData - Update data
-   * @returns {Object} Updated deck
-   */
+
   static async updateDeck(deckId, userId, updateData) {
     const { name, description } = updateData;
 
@@ -215,13 +189,9 @@ class DeckService {
     };
   }
 
-  /**
-   * Delete deck
-   * @param {string} deckId - Deck ID
-   * @param {string} userId - User ID
-   */
+
   static async deleteDeck(deckId, userId) {
-    // Check if deck exists and belongs to user
+
     const existingDeck = await prisma.deck.findFirst({
       where: {
         id: deckId,
@@ -233,18 +203,12 @@ class DeckService {
       throw new Error('Deck not found');
     }
 
-    // Delete deck (cards will be deleted automatically due to cascade)
+   
     await prisma.deck.delete({
       where: { id: deckId },
     });
   }
 
-  /**
-   * Get deck statistics
-   * @param {string} deckId - Deck ID
-   * @param {string} userId - User ID
-   * @returns {Object} Deck statistics
-   */
   static async getDeckStats(deckId, userId) {
     const deck = await prisma.deck.findFirst({
       where: {
@@ -289,13 +253,7 @@ class DeckService {
     };
   }
 
-  /**
-   * Search decks
-   * @param {string} userId - User ID
-   * @param {string} query - Search query
-   * @param {Object} options - Search options
-   * @returns {Object} Search results
-   */
+
   static async searchDecks(userId, query, options = {}) {
     const { page = 1, limit = 10 } = options;
     const skip = (page - 1) * limit;

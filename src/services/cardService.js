@@ -1,16 +1,6 @@
 const { prisma, withRetry } = require('../config/database');
 
-/**
- * Card Service
- */
 class CardService {
-  /**
-   * Create a new card
-   * @param {string} userId - User ID
-   * @param {string} deckId - Deck ID
-   * @param {Object} cardData - Card data
-   * @returns {Object} Created card
-   */
   static async createCard(userId, deckId, cardData) {
     const { frontText, backText, memorized = false } = cardData;
 
@@ -51,13 +41,7 @@ class CardService {
     return card;
   }
 
-  /**
-   * Get cards for a deck
-   * @param {string} userId - User ID
-   * @param {string} deckId - Deck ID
-   * @param {Object} options - Query options
-   * @returns {Object} Cards with pagination
-   */
+
   static async getDeckCards(userId, deckId, options = {}) {
     const { 
       page = 1, 
@@ -126,12 +110,7 @@ class CardService {
     };
   }
 
-  /**
-   * Get card by ID
-   * @param {string} cardId - Card ID
-   * @param {string} userId - User ID
-   * @returns {Object} Card
-   */
+
   static async getCardById(cardId, userId) {
     const card = await prisma.card.findFirst({
       where: {
@@ -158,13 +137,7 @@ class CardService {
     return card;
   }
 
-  /**
-   * Update card
-   * @param {string} cardId - Card ID
-   * @param {string} userId - User ID
-   * @param {Object} updateData - Update data
-   * @returns {Object} Updated card
-   */
+
   static async updateCard(cardId, userId, updateData) {
     const { frontText, backText, memorized } = updateData;
 
@@ -204,13 +177,8 @@ class CardService {
     return card;
   }
 
-  /**
-   * Delete card
-   * @param {string} cardId - Card ID
-   * @param {string} userId - User ID
-   */
+ 
   static async deleteCard(cardId, userId) {
-    // Check if card exists and belongs to user
     const existingCard = await prisma.card.findFirst({
       where: {
         id: cardId,
@@ -232,18 +200,11 @@ class CardService {
       where: { id: cardId },
     });
 
-    // Update deck card count
+
     await this.updateDeckCardCount(existingCard.deckId);
   }
 
-  /**
-   * Toggle card memorized status
-   * @param {string} cardId - Card ID
-   * @param {string} userId - User ID
-   * @returns {Object} Updated card
-   */
   static async toggleMemorized(cardId, userId) {
-    // Get current card
     const existingCard = await prisma.card.findFirst({
       where: {
         id: cardId,
@@ -277,16 +238,8 @@ class CardService {
     return card;
   }
 
-  /**
-   * Bulk update cards memorized status
-   * @param {string} userId - User ID
-   * @param {string} deckId - Deck ID
-   * @param {Array} cardIds - Array of card IDs
-   * @param {boolean} memorized - Memorized status
-   * @returns {Object} Update result
-   */
+
   static async bulkUpdateMemorized(userId, deckId, cardIds, memorized) {
-    // Check if deck exists and belongs to user
     const deck = await prisma.deck.findFirst({
       where: {
         id: deckId,
@@ -315,17 +268,11 @@ class CardService {
     };
   }
 
-  /**
-   * Get cards for study session
-   * @param {string} userId - User ID
-   * @param {string} deckId - Deck ID
-   * @param {Object} options - Study options
-   * @returns {Array} Study cards
-   */
+
   static async getStudyCards(userId, deckId, options = {}) {
     const { limit = 20, memorizedOnly = false, unmemorizedOnly = false } = options;
 
-    // Check if deck exists and belongs to user
+
     const deck = await prisma.deck.findFirst({
       where: {
         id: deckId,
@@ -351,8 +298,8 @@ class CardService {
       where,
       take: limit,
       orderBy: [
-        { memorized: 'asc' }, // Unmemorized first
-        { updatedAt: 'asc' }, // Least recently updated first
+        { memorized: 'asc' }, 
+        { updatedAt: 'asc' }, 
       ],
       include: {
         deck: {
@@ -367,13 +314,7 @@ class CardService {
     return cards;
   }
 
-  /**
-   * Search cards across all user's decks
-   * @param {string} userId - User ID
-   * @param {string} query - Search query
-   * @param {Object} options - Search options
-   * @returns {Object} Search results
-   */
+
   static async searchCards(userId, query, options = {}) {
     const { page = 1, limit = 10, deckId, memorized } = options;
     const skip = (page - 1) * limit;
@@ -419,14 +360,8 @@ class CardService {
     };
   }
 
-  /**
-   * Get card statistics for a deck
-   * @param {string} userId - User ID
-   * @param {string} deckId - Deck ID
-   * @returns {Object} Card statistics
-   */
+ 
   static async getCardStats(userId, deckId) {
-    // Check if deck exists and belongs to user
     const deck = await prisma.deck.findFirst({
       where: {
         id: deckId,
@@ -457,11 +392,7 @@ class CardService {
     };
   }
 
-  /**
-   * Update deck card count
-   * @param {string} deckId - Deck ID
-   * @private
-   */
+
   static async updateDeckCardCount(deckId) {
     const cardCount = await prisma.card.count({
       where: { deckId },

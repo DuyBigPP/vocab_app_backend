@@ -12,7 +12,7 @@ const router = express.Router();
  *   description: Deck management operations
  */
 
-// All deck routes require authentication
+// All deck routes 
 router.use(authenticateToken);
 
 // Deck CRUD operations

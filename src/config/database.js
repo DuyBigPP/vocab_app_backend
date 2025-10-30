@@ -1,10 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 
-// Neon connection string đã được optimize sẵn, không cần thêm params
+
 const optimizedUrl = process.env.DATABASE_URL;
 
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'], // Giảm logging
+  log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'], 
   datasources: {
     db: {
       url: optimizedUrl,
@@ -12,13 +12,13 @@ const prisma = new PrismaClient({
   },
 });
 
-// Simple keep-alive ping mỗi 5 phút
+
 let keepAliveInterval;
 
 const startKeepAlive = () => {
   if (keepAliveInterval) clearInterval(keepAliveInterval);
   
-  // Ping database mỗi 5 phút để maintain connection
+ 
   keepAliveInterval = setInterval(async () => {
     try {
       await prisma.$queryRaw`SELECT 1`;
@@ -33,10 +33,10 @@ const startKeepAlive = () => {
         console.error('❌ Failed to reconnect after ping failure:', reconnectError.message);
       }
     }
-  }, 4 * 60 * 1000); // 4 minutes
+  }, 4 * 60 * 1000); 
 };
 
-// Health check và auto-reconnect function
+// Health check 
 const ensureConnection = async () => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -56,7 +56,7 @@ const ensureConnection = async () => {
   }
 };
 
-// Wrapper cho tất cả database operations với retry logic
+
 const withRetry = async (operation, maxRetries = 2) => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -71,7 +71,6 @@ const withRetry = async (operation, maxRetries = 2) => {
       if (isConnectionError && attempt < maxRetries) {
         console.log(`🔄 Database operation failed (attempt ${attempt}/${maxRetries}), retrying...`);
         await ensureConnection();
-        // Exponential backoff
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
@@ -82,7 +81,7 @@ const withRetry = async (operation, maxRetries = 2) => {
   }
 };
 
-// Warmup connection on startup
+// Warmup connection
 const warmupConnection = async () => {
   try {
     console.log('🔥 Warming up database connection...');
@@ -93,13 +92,13 @@ const warmupConnection = async () => {
   }
 };
 
-// Auto warmup và start keep-alive
+
 warmupConnection().then(() => {
   startKeepAlive();
   console.log('🔄 Database keep-alive started');
 });
 
-// Graceful shutdown
+
 process.on('beforeExit', async () => {
   console.log('🔌 Disconnecting from database...');
   if (keepAliveInterval) {

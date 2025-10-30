@@ -1,13 +1,11 @@
 const jwt = require('jsonwebtoken');
 const { prisma, withRetry } = require('../config/database');
 
-/**
- * JWT Authentication Middleware
- */
+
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1]; 
 
     if (!token) {
       return res.status(401).json({
@@ -16,13 +14,12 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Note: In a production environment, you might want to implement token blacklisting
-    // using a database table or in-memory store
 
-    // Verify JWT token
+
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Get user from database
+    
     const user = await withRetry(async () => {
       return await prisma.user.findUnique({
         where: { id: decoded.userId },
@@ -43,7 +40,6 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Attach user to request
     req.user = user;
     req.token = token;
     next();
@@ -72,10 +68,7 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-/**
- * Optional Authentication Middleware
- * Attaches user if token is valid, but doesn't require authentication
- */
+
 const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -85,12 +78,12 @@ const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    // Note: In a production environment, you might want to implement token blacklisting
+   
 
-    // Verify token
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Get user
+    
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -109,7 +102,6 @@ const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // If optional auth fails, just continue without user
     next();
   }
 };

@@ -2,25 +2,18 @@ const bcrypt = require('bcryptjs');
 const { prisma, withRetry } = require('../config/database');
 const { generateToken } = require('../utils/jwt');
 
-/**
- * Authentication Service
- */
+
 class AuthService {
-  /**
-   * Register a new user
-   * @param {Object} userData - User registration data
-   * @returns {Object} User and token
-   */
   static async register(userData) {
     try {
       const { email, password, name } = userData;
 
-      // Input validation
+
       if (!email || !password) {
         throw new Error('Email and password are required');
       }
 
-      // Check if user already exists
+
       const existingUser = await withRetry(async () => {
         return await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
@@ -63,16 +56,12 @@ class AuthService {
     }
   }
 
-  /**
-   * Login user
-   * @param {Object} loginData - User login data
-   * @returns {Object} User and token
-   */
+
   static async login(loginData) {
     try {
       const { email, password } = loginData;
 
-      // Input validation
+
       if (!email || !password) {
         throw new Error('Email and password are required');
       }
@@ -108,26 +97,13 @@ class AuthService {
     }
   }
 
-  /**
-   * Logout user
-   * @param {string} userId - User ID
-   * @param {string} token - JWT token
-   */
+
   static async logout(userId, token) {
-    // Note: In a production environment, you might want to implement token blacklisting
-    // using a database table or in-memory store
-    // For now, we'll just return success as the token will expire naturally
     return true;
   }
 
-  /**
-   * Change user password
-   * @param {string} userId - User ID
-   * @param {string} oldPassword - Current password
-   * @param {string} newPassword - New password
-   */
+
   static async changePassword(userId, oldPassword, newPassword) {
-    // Get user with password
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -136,30 +112,25 @@ class AuthService {
       throw new Error('User not found');
     }
 
-    // Verify old password
+
     const isValidPassword = await bcrypt.compare(oldPassword, user.password);
 
     if (!isValidPassword) {
       throw new Error('Invalid current password');
     }
 
-    // Hash new password
+
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    // Update password
+
     await prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
     });
   }
 
-  /**
-   * Update user profile
-   * @param {string} userId - User ID
-   * @param {Object} updateData - Update data
-   * @returns {Object} Updated user
-   */
+
   static async updateProfile(userId, updateData) {
     const { name, email } = updateData;
 
@@ -170,7 +141,6 @@ class AuthService {
     }
 
     if (email !== undefined) {
-      // Check if email is already taken
       const existingUser = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
       });
